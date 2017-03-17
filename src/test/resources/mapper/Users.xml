@@ -7,7 +7,7 @@
     <!-- 这样以后改了sql，就不需要去改java代码了 -->
     <!-- id表示select里的sql语句，resultClass表示返回结果的类型 -->
     <select id="selectAllStudent" resultClass="Users">
-        select * from t_user
+        select * from t_user where id = 1
     </select>
 
 </sqlMap>
