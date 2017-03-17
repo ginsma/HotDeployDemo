@@ -210,7 +210,7 @@ public class HotLoadServiceImp implements HotLoadService {
     /**
      * @Title loadPath
      * @Description 创建加载器
-     * @Author weizhi2018
+     * @Author
      * @param jarPath
      *            jar包所在路经
      * @throws
@@ -243,7 +243,7 @@ public class HotLoadServiceImp implements HotLoadService {
     /**
      * @Title loadJar
      * @Description 遍历jar包下的类
-     * @Author weizhi2018
+     * @Author
      * @param jarName
      *            jar包名字 完整路径
      * @throws
@@ -278,7 +278,7 @@ public class HotLoadServiceImp implements HotLoadService {
     /**
      * @Title loadClass
      * @Description 通过类加载器实例化
-     * @Author weizhi2018
+     * @Author
      * @param clazzName
      *            类名字
      * @return
@@ -317,7 +317,7 @@ public class HotLoadServiceImp implements HotLoadService {
         File loadFile = new File(CLASS_PATH+className.replaceAll("\\.","/")+".class");
         long lastModified = loadFile.lastModified();
 
-        //查看是否被家再过 ,如果没有被家再过则加载
+        //查看是否被加载过 ,如果没有被加载过则加载
         if(loadTimeMap.get(className) == null){
             load(className,lastModified);
         }else if(loadTimeMap.get(className).getLoadTime() != lastModified){//如果被加载过，查看加载时间，如果该类已经被修改，则重新加载

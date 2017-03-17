@@ -64,7 +64,6 @@ public class HotDeploy {
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
 		new HotDeploy().startServer();
-		//System.out.println(System.getProperty("java.class.path"));
 	}
 
 }

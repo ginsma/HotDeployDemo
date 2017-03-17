@@ -1,6 +1,4 @@
-/**
- * 
- */
+
 package main.java.com.bocsoft.deploy.service.serviceIml;
 
 import com.ibatis.common.util.PaginatedList;
@@ -29,20 +27,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-/**
- * ΪSqlMapExecutorDelegate�������ʵ�ֵĴ�����
- * 
- * <pre>
- * 		����������Ƚϱ������൱������XXXXX������this.XXXXX��ʵ�֡�
- * 		����һЩ���ɼ��ķ�������Ҫ����������~~�ۡ�����
- * 		
- * 		��Ҫ����д��addMappedStatement�������������map��ֵ�ˣ���ɾ����������ԭ�����ظ��жϵ�exception
- * </pre>
- * 
- * @author yuezhen
- * 
- */
-public class H2o3SqlMapExecutorDelegate extends SqlMapExecutorDelegate {
+
+public class MySqlMapExecutorDelegate extends SqlMapExecutorDelegate {
 
 	/**
 	 * ԭ������
@@ -52,7 +38,7 @@ public class H2o3SqlMapExecutorDelegate extends SqlMapExecutorDelegate {
 	/**
 	 * @param delegate
 	 */
-	public H2o3SqlMapExecutorDelegate(SqlMapExecutorDelegate delegate) {
+	public MySqlMapExecutorDelegate(SqlMapExecutorDelegate delegate) {
 		super();
 		this.delegate = delegate;
 	}

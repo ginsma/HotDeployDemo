@@ -14,26 +14,13 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
-/**
- * sqlMapClientImpl�Ĵ����ࡣ
- * 
- * <pre>
- * 		�����������sql��������ڣ����Ҵ����SqlMapExecutorDelegate���sqlִ�����Ĵ����ࡣ
- * 		�������������spring�е���ڡ�
- * 		
- * 		���Դ�������࣬���Լ���delegate���ý�ȥ�����ҷ����Լ���delegate��SqlMapConfiguration��
- * 		��֤���¼���sqlmap��ʱ�򣬲��������Լ���delegate�������Ͳ��ᴥ��ԭ��delegate�е��ظ��жϡ�
- * </pre>
- * 
- * @author yuezhen
- * 
- */
-public class H2o3SqlMapClientImpl extends SqlMapClientImpl {
+
+public class MySqlMapClientImpl extends SqlMapClientImpl {
 
 	/**
 	 * Delegate for SQL execution
 	 */
-	public H2o3SqlMapExecutorDelegate h2o3Delegate;
+	public MySqlMapExecutorDelegate h2o3Delegate;
 
 	/**
 	 * sqlmap��·��
@@ -58,12 +45,12 @@ public class H2o3SqlMapClientImpl extends SqlMapClientImpl {
 	 * @param configParser
 	 * @param properties
 	 */
-	public H2o3SqlMapClientImpl(SqlMapClient client,
-                                Resource[] configLocations, SqlMapConfigParser configParser,
-                                Properties properties) {
-		super(new H2o3SqlMapExecutorDelegate(((ExtendedSqlMapClient) client)
+	public MySqlMapClientImpl(SqlMapClient client,
+                              Resource[] configLocations, SqlMapConfigParser configParser,
+                              Properties properties) {
+		super(new MySqlMapExecutorDelegate(((ExtendedSqlMapClient) client)
 				.getDelegate()));
-		this.h2o3Delegate = (H2o3SqlMapExecutorDelegate) this.delegate;
+		this.h2o3Delegate = (MySqlMapExecutorDelegate) this.delegate;
 		this.configLocations = configLocations;
 		this.configParser = configParser;
 		this.properties = properties;
@@ -117,7 +104,7 @@ public class H2o3SqlMapClientImpl extends SqlMapClientImpl {
 
 	}
 
-	public H2o3SqlMapExecutorDelegate getMydelegate() {
+	public MySqlMapExecutorDelegate getMydelegate() {
 		return h2o3Delegate;
 	}
 }

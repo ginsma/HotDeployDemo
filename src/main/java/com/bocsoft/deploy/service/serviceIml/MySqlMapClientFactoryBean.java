@@ -1,6 +1,3 @@
-/**
- * 
- */
 package main.java.com.bocsoft.deploy.service.serviceIml;
 
 import com.ibatis.common.xml.NodeletException;
@@ -27,16 +24,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
-/**
- * ��дSqlMapClientFactoryBean��
- * <pre>
- * 	ֻΪ�˷��Լ���client
- * </pre>
- * 
- * @author yuezhen
- * 
- */
-public class H2o3SqlMapClientFactoryBean extends SqlMapClientFactoryBean {
+
+public class MySqlMapClientFactoryBean extends SqlMapClientFactoryBean {
 	private static final ThreadLocal<LobHandler> configTimeLobHandlerHolder = new ThreadLocal<LobHandler>();
 
 	/**
@@ -74,7 +63,7 @@ public class H2o3SqlMapClientFactoryBean extends SqlMapClientFactoryBean {
 
 	private SqlMapClient sqlMapClient;
 
-	public H2o3SqlMapClientFactoryBean() {
+	public MySqlMapClientFactoryBean() {
 		this.transactionConfigProperties = new Properties();
 		this.transactionConfigProperties.setProperty("SetAutoCommitAllowed",
 				"false");
@@ -380,7 +369,7 @@ public class H2o3SqlMapClientFactoryBean extends SqlMapClientFactoryBean {
 		}
 
 		//��client��ֵΪ�Լ���sqlmapclient�������Ψһ����ڣ�����ֻ����ô�ġ�
-		client = new H2o3SqlMapClientImpl(client, configLocations,
+		client = new MySqlMapClientImpl(client, configLocations,
 				configParser, properties);
 
 		return client;

@@ -10,10 +10,10 @@ import org.w3c.dom.Node;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
-public class DySqlMapParser extends SqlMapParser {
+public class MySqlMapParser extends SqlMapParser {
     private XmlParserState myState = null;
 
-    public DySqlMapParser(XmlParserState state) {
+    public MySqlMapParser(XmlParserState state) {
         super(state);
         this.myState = state;
         resetSqlNodelets();
