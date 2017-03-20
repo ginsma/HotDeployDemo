@@ -64,10 +64,10 @@ public class HotLoadServiceImp implements HotLoadService {
      */
     private static final Map<String,LoadInfo> loadTimeMap = new HashMap<String, LoadInfo>();
 
-    public static final String CLASS_PATH = "/Users/Jean/Work/HDSS/Test/out/production/HotDeploy/test/java/";
+    public static final String CLASS_PATH = "/Users/Jean/Work/HDSS/JavaHotDeploy/HotDeploy/out/production/HotDeploy/";
     //public static final String CLASS_PATH = "D:/EclipseWorkspace/HotDeploy/a/src/";
 
-    public static final String MY_MANAGER = "com.bocsoft.deploy.manager.MyManager";
+    public static final String MY_MANAGER = "test.java.com.bocsoft.deploy.service.serviceImpl.MyManager";
 
 
 	//定时扫描配置文件的主程序
