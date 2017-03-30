@@ -17,6 +17,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import test.java.com.bocsoft.deploy.beans.Car;
 import test.java.com.bocsoft.deploy.beans.Users;
 import test.java.com.bocsoft.deploy.dao.daoimpl.UsersDaoImpl;
+import test.java.com.bocsoft.deploy.service.Say;
 
 
 import java.io.IOException;
@@ -43,7 +44,12 @@ public class HotLoadServiceImp implements HotLoadService {
 	//配置ibatis的Xml文件的相关参数（用于Ibatis）
 	private Car car;
 
-	//定时扫描配置文件的主程序
+    //配置class文件的相关参数（用于Class）
+    private Say say;
+
+
+
+    //定时扫描配置文件的主程序
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
 		//加载config.properties
 		Resource resource = new ClassPathResource(jobCtx.getJobDetail().getJobDataMap().getString("main/resources/config.properties"));
@@ -74,6 +80,16 @@ public class HotLoadServiceImp implements HotLoadService {
 			//配置Mybatis的Xml文件的地址
 			loadMybatis();
 		}
+
+        //判断是否需要热加载Class
+        if(isDeployed(resource, "hotdeployClass")) {
+            try {
+                loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathClass"));
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
 	}
 
 	//----------------------------公用的方法----------------------------------------
@@ -151,5 +167,45 @@ public class HotLoadServiceImp implements HotLoadService {
 			System.out.println(user);
 		}
 	}
+
+    //----------------------------加载Class的方法----------------------------------------
+    private void loadFile(String filePath) {
+        //使用系统文件路径方式加载文件
+        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+
+        try {
+            Resource resources[] = resolver.getResources(filePath);
+            for(Resource resource : resources) {
+                loadSingleFile(resource);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadSingleFile(Resource resource)
+            throws IOException {
+        //配置文件上次更新的时间戳
+        long lastFrame = resource.contentLength() + resource.lastModified();
+        String resourceName =  resource.getFilename();
+        //如果时间戳不存在
+        if (!xmlTime.containsKey(resourceName)) {
+            xmlTime.put(resourceName, lastFrame);
+            System.out.println(resourceName + "的时间戳第一次初始化");
+        } else if (!xmlTime.get(resourceName).equals(lastFrame)) {
+            xmlTime.put(resourceName, lastFrame);
+            System.out.println("------------------------------------------");
+            System.out.println(resourceName + "的时间戳被更新");
+            //更新配置文件
+            changeClass(resource);
+        }
+    }
+
+    private void changeClass(Resource resource) throws IOException {
+	    Object ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
+        say = MyClassLoader.reLoadClass(ClassTemp);
+        say.say();
+	    System.err.println(say.getClass().getName() + "成功被热加载 ");
+    }
 
 }
