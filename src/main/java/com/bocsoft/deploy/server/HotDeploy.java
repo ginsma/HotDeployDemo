@@ -5,17 +5,14 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
 
-
 import main.java.com.bocsoft.deploy.service.serviceIml.HotLoadServiceImp;
-
-
-
 
 public class HotDeploy {
 	//配置文件地址
@@ -61,7 +58,9 @@ public class HotDeploy {
 			}
 	}
 
-	public static void main(String[] args) throws IOException {
+
+
+	public static void main(String[] args) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, InterruptedException {
 		// TODO Auto-generated method stub
 		new HotDeploy().startServer();
 	}

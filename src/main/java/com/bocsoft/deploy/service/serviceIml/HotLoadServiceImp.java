@@ -17,10 +17,12 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import test.java.com.bocsoft.deploy.beans.Car;
 import test.java.com.bocsoft.deploy.beans.Users;
 import test.java.com.bocsoft.deploy.dao.daoimpl.UsersDaoImpl;
+import test.java.com.bocsoft.deploy.service.JarTest1;
 import test.java.com.bocsoft.deploy.service.Say;
 
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +49,8 @@ public class HotLoadServiceImp implements HotLoadService {
     //配置class文件的相关参数（用于Class）
     private Say say;
 
-
+	//配置jar文件的相关参数（用于Jar）
+	private MyURLClassLoader URLClassLoader;
 
     //定时扫描配置文件的主程序
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
@@ -83,13 +86,25 @@ public class HotLoadServiceImp implements HotLoadService {
 
         //判断是否需要热加载Class
         if(isDeployed(resource, "hotdeployClass")) {
+			configType = "class";
             try {
-                loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathClass"));
+                loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathClass"), configType);
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
+
+		//判断是否需要热加载Jar
+		if(isDeployed(resource, "hotdeployJar")) {
+			configType = "jar";
+			try {
+				loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathJar"), configType);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 	//----------------------------公用的方法----------------------------------------
@@ -103,8 +118,8 @@ public class HotLoadServiceImp implements HotLoadService {
 		}
 		return hotDeploy == 1;
 	}
-	//----------------------------加载Spring的方法----------------------------------------
-	private void loadFile(String filePath ,String configType) {
+	//----------------------------加载Spring、class和jar的共用方法----------------------------------------
+	private void loadFile(String filePath, String configType) {
 		//使用系统文件路径方式加载文件
 		ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
@@ -115,12 +130,22 @@ public class HotLoadServiceImp implements HotLoadService {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
 
 	private void loadSingleFile(String configType, Resource resource)
-			throws IOException {
+			throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
 		//配置文件上次更新的时间戳
 		long lastFrame = resource.contentLength() + resource.lastModified();
 		String resourceName =  resource.getFilename();
@@ -137,8 +162,15 @@ public class HotLoadServiceImp implements HotLoadService {
 				changeXml(resource);
 			else if(configType.equals("prop") || configType == "prop")
 				changeProp(resource);
+			else if(configType.equals("class") || configType == "class")
+				changeClass(resource);
+			else if(configType.equals("jar") || configType == "jar") {
+				changeJar(resource);
+			}
 		}
 	}
+
+	//----------------------------加载Spring的方法---------------------------------------
 
 	private void changeXml(Resource resource) throws IOException{
 		String s = resource.getFile().getAbsolutePath();
@@ -169,43 +201,25 @@ public class HotLoadServiceImp implements HotLoadService {
 	}
 
     //----------------------------加载Class的方法----------------------------------------
-    private void loadFile(String filePath) {
-        //使用系统文件路径方式加载文件
-        ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-
-        try {
-            Resource resources[] = resolver.getResources(filePath);
-            for(Resource resource : resources) {
-                loadSingleFile(resource);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void loadSingleFile(Resource resource)
-            throws IOException {
-        //配置文件上次更新的时间戳
-        long lastFrame = resource.contentLength() + resource.lastModified();
-        String resourceName =  resource.getFilename();
-        //如果时间戳不存在
-        if (!xmlTime.containsKey(resourceName)) {
-            xmlTime.put(resourceName, lastFrame);
-            System.out.println(resourceName + "的时间戳第一次初始化");
-        } else if (!xmlTime.get(resourceName).equals(lastFrame)) {
-            xmlTime.put(resourceName, lastFrame);
-            System.out.println("------------------------------------------");
-            System.out.println(resourceName + "的时间戳被更新");
-            //更新配置文件
-            changeClass(resource);
-        }
-    }
-
     private void changeClass(Resource resource) throws IOException {
 	    Object ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
         say = MyClassLoader.reLoadClass(ClassTemp);
         say.say();
 	    System.err.println(say.getClass().getName() + "成功被热加载 ");
     }
+
+	//----------------------------加载jar的方法----------------------------------------
+	private void changeJar(Resource resource) throws ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
+		    URLClassLoader = new MyURLClassLoader();
+			URLClassLoader.addURLFile(resource.getURL());
+
+			System.out.println("load " + resource.getFilename() + "  success");
+            Class<?> forName = Class.forName("com.gin.JarTestImp1", true, URLClassLoader);
+			URLClassLoader.loadClass("com.gin.JarTestImp1");
+            JarTest1 jarTest = (JarTest1)forName.newInstance();
+            jarTest.f();
+			URLClassLoader.unloadJarFiles();
+		    System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
+	}
 
 }
