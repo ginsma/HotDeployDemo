@@ -60,7 +60,7 @@ public class HotDeploy {
 
 
 
-	public static void main(String[] args) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, InterruptedException {
+	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		new HotDeploy().startServer();
 	}

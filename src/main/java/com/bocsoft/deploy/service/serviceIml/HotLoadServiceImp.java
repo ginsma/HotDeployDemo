@@ -130,24 +130,18 @@ public class HotLoadServiceImp implements HotLoadService {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		}
 	}
 
 
-	private void loadSingleFile(String configType, Resource resource)
-			throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+	private void loadSingleFile(String configType, Resource resource) {
 		//配置文件上次更新的时间戳
-		long lastFrame = resource.contentLength() + resource.lastModified();
+		long lastFrame = 0;
+		try {
+			lastFrame = resource.contentLength() + resource.lastModified();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		String resourceName =  resource.getFilename();
 		//如果时间戳不存在
 		if (!xmlTime.containsKey(resourceName)) {
@@ -158,22 +152,27 @@ public class HotLoadServiceImp implements HotLoadService {
 			System.out.println("------------------------------------------");
 			System.out.println(resourceName + "的时间戳被更新");
 			//更新配置文件
-			if(configType.equals("xml") || configType == "xml")
-				changeXml(resource);
+			if(configType.equals("xml") || configType == "xml") {
+                changeXml(resource);
+            }
 			else if(configType.equals("prop") || configType == "prop")
 				changeProp(resource);
 			else if(configType.equals("class") || configType == "class")
-				changeClass(resource);
-			else if(configType.equals("jar") || configType == "jar") {
+                changeClass(resource);
+			else if(configType.equals("jar") || configType == "jar")
 				changeJar(resource);
-			}
 		}
 	}
 
 	//----------------------------加载Spring的方法---------------------------------------
 
-	private void changeXml(Resource resource) throws IOException{
-		String s = resource.getFile().getAbsolutePath();
+	private void changeXml(Resource resource) {
+		String s = null;
+		try {
+			s = resource.getFile().getAbsolutePath();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		ctxSpring = new FileSystemXmlApplicationContext("file:" + s);
 		car = (Car)ctxSpring.getBean("car3",Car.class);
 		System.out.println(resource.getFilename()+ "的新车牌号为" + car.brand);
@@ -201,25 +200,49 @@ public class HotLoadServiceImp implements HotLoadService {
 	}
 
     //----------------------------加载Class的方法----------------------------------------
-    private void changeClass(Resource resource) throws IOException {
-	    Object ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
-        say = MyClassLoader.reLoadClass(ClassTemp);
+    private void changeClass(Resource resource) {
+		Object ClassTemp = null;
+		try {
+			ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		say = MyClassLoader.reLoadClass(ClassTemp);
         say.say();
 	    System.err.println(say.getClass().getName() + "成功被热加载 ");
     }
 
 	//----------------------------加载jar的方法----------------------------------------
-	private void changeJar(Resource resource) throws ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
+	private void changeJar(Resource resource) {
 		    URLClassLoader = new MyURLClassLoader();
+		try {
 			URLClassLoader.addURLFile(resource.getURL());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-			System.out.println("load " + resource.getFilename() + "  success");
-            Class<?> forName = Class.forName("com.gin.JarTestImp1", true, URLClassLoader);
+		System.out.println("load " + resource.getFilename() + "  success");
+
+		Class<?> forName = null;
+		try {
+			forName = Class.forName("com.gin.JarTestImp1", true, URLClassLoader);
 			URLClassLoader.loadClass("com.gin.JarTestImp1");
-            JarTest1 jarTest = (JarTest1)forName.newInstance();
-            jarTest.f();
-			URLClassLoader.unloadJarFiles();
-		    System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		JarTest1 jarTest = null;
+		try {
+			jarTest = (JarTest1)forName.newInstance();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+
+		jarTest.f();
+		URLClassLoader.unloadJarFiles();
+		System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
 	}
 
 }
