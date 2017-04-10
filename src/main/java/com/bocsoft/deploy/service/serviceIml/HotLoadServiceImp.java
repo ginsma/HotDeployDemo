@@ -23,10 +23,9 @@ import test.java.com.bocsoft.deploy.service.Say;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * Created by Jean on 2017/1/4.
@@ -51,6 +50,8 @@ public class HotLoadServiceImp implements HotLoadService {
 
 	//配置jar文件的相关参数（用于Jar）
 	private MyURLClassLoader URLClassLoader;
+    private final static String CLAZZ_SUFFIX = ".class";
+    private static List<String> className = new ArrayList<String>();
 
     //定时扫描配置文件的主程序
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
@@ -200,8 +201,10 @@ public class HotLoadServiceImp implements HotLoadService {
 	}
 
     //----------------------------加载Class的方法----------------------------------------
+    //原来是根据跳过ClassLoader的loadClass方法，而是直接执行defineClass方法或者是findClass来加载Class文件
     private void changeClass(Resource resource) {
 		Object ClassTemp = null;
+		//直接执行自己ClassLoader的findNewClass方法来调用defineClass方法，跳过验证ClassLoader的步骤
 		try {
 			ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
 		} catch (IOException e) {
@@ -213,36 +216,66 @@ public class HotLoadServiceImp implements HotLoadService {
     }
 
 	//----------------------------加载jar的方法----------------------------------------
+    //原理是根据不同的ClassLoader热加载同一个Class不会被判定为相同的Class文件
 	private void changeJar(Resource resource) {
-		    URLClassLoader = new MyURLClassLoader();
+	    URLClassLoader = new MyURLClassLoader();
+        //把Jar包的路径放入URLClassLoader中
 		try {
 			URLClassLoader.addURLFile(resource.getURL());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+            loadClassName(String.valueOf(resource.getFile()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		System.out.println("load " + resource.getFilename() + "  success");
+        Iterator it = className.iterator();
+        //加载Class文件
+        while(it.hasNext()) {
+            Class<?> forName = null;
+            try {
+                forName = Class.forName(it.next() + "", true, URLClassLoader);
+                URLClassLoader.loadClass(it.next() + "");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
 
-		Class<?> forName = null;
-		try {
-			forName = Class.forName("com.gin.JarTestImp1", true, URLClassLoader);
-			URLClassLoader.loadClass("com.gin.JarTestImp1");
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
+            System.out.println("load " + resource.getFilename() + "  success");
 
-		JarTest1 jarTest = null;
-		try {
-			jarTest = (JarTest1)forName.newInstance();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		}
+            JarTest1 jarTest = null;
+            try {
+                jarTest = (JarTest1) forName.newInstance();
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
 
-		jarTest.f();
-		URLClassLoader.unloadJarFiles();
-		System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
+            jarTest.f();
+            //URLClassLoader.unloadJarFiles();
+            //System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
+            //System.out.println(" 成功被热加载 ");
+
+        }
+        className.clear();
 	}
 
+    private void loadClassName(String jarName) {
+        try {
+            JarFile jarFile = new JarFile(jarName);
+            Enumeration<JarEntry> em = jarFile.entries();
+            while (em.hasMoreElements()) {
+                JarEntry jarEntry = em.nextElement();
+                String clazzFile = jarEntry.getName();
+
+                if (!clazzFile.endsWith(CLAZZ_SUFFIX)) {
+                    continue;
+                }
+                String clazzName = clazzFile.substring(0,
+                        clazzFile.length() - CLAZZ_SUFFIX.length()).replace(
+                        '/', '.');
+                className.add(clazzName);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

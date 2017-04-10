@@ -26,18 +26,18 @@ public class MyURLClassLoader extends URLClassLoader {
      * @param 一个可向类加载器的classpath中添加的文件url
      */
     public void addURLFile(URL file) {
-        try {
+   /*     try {
             // 打开并缓存文件url连接
 
             URLConnection uc = file.openConnection();
             if (uc instanceof JarURLConnection) {
                 uc.setUseCaches(true);
-                ((JarURLConnection) uc).getManifest();
+                //((JarURLConnection) uc).getManifest();
                 cachedJarFiles.add((JarURLConnection)uc);
             }
         } catch (Exception e) {
             System.err.println("Failed to cache plugin JAR file: " + file.toExternalForm());
-        }
+        }*/
         addURL(file);
     }
 

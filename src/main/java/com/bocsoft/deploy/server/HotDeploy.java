@@ -48,7 +48,7 @@ public class HotDeploy {
 
 				// Tell quartz to schedule the job using our trigger
 				scheduler.scheduleJob(job, trigger);
-				//End this scheduler in 80s
+				//End this schedJarTest1.jaruler in 80s
 				Thread.sleep(80000);
 
 				scheduler.shutdown();
