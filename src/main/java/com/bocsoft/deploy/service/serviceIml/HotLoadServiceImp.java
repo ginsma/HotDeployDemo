@@ -189,7 +189,11 @@ public class HotLoadServiceImp implements HotLoadService {
 		System.out.println(props.getProperty("boc"));
 	}
 
-	//----------------------------加载ibatis的方法----------------------------------------
+	//----------------------------加载ibatis的方法---------------------------------------
+    //原理是用重写SqlmapClientFactoryBean让它返回我们重写过的SqlMapClientImpl，
+    // 在SqlMapClientImpl添加刷新的方法，然后通过SqlMapClientImpl来调用
+    // 我们代理的SqlMapExecutorDelegate就可以实现重新加载了
+    //SqlMapExecutorDelegate是具体的加载类，里面有一个判别
 	private void loadMybatis() {
 		UsersDaoImpl studentDaoImpl = new UsersDaoImpl();
 
