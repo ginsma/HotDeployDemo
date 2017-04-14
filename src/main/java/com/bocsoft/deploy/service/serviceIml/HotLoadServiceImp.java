@@ -1,6 +1,8 @@
 package main.java.com.bocsoft.deploy.service.serviceIml;
 
 
+import main.java.com.bocsoft.deploy.beans.Props;
+import main.java.com.bocsoft.deploy.server.HotDeploy;
 import main.java.com.bocsoft.deploy.service.HotLoadService;
 import org.apache.log4j.Logger;
 import org.quartz.JobExecutionContext;
@@ -22,7 +24,6 @@ import test.java.com.bocsoft.deploy.service.Say;
 
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -32,15 +33,27 @@ import java.util.jar.JarFile;
  */
 public class HotLoadServiceImp implements HotLoadService {
 	//错误日志文件
-	private Logger logger = Logger.getLogger("HotLoadServiceImp");
+	private static final Logger logger = Logger.getLogger(HotLoadServiceImp.class);
     //配置文件信息（全部）
-	public static Properties props;
+	private Properties props = new Props().getProps();
+	private static boolean isFirstLoad = true;
+	private final String LOADSPRING = "loadSpring";
+	private final String LOADIBATIS = "loadIbatis";
+	private final String LOADCLASS = "loadClass";
+	private final String LOADJAR = "loadJar";
+	private final String XMLPATH = "xmlPath";
+	private final String PROPPATH = "propPath";
+	private final String CLASSPATH = "classPath";
+	private final String JARPATH = "jarPath";
+	private final String XML = "xml";
+	private final String PROP = "prop";
+	private final String CLASS = "class";
+	private final String JAR = "jar";
 
 	//存放配置文件的时间戳(用于Spring)
 	private static Map<String, Long> xmlTime = new HashMap<String, Long>();
 	//全局的Spring的ApplicationContxt，每次配置文件更新都重新赋值(用于Spring)
-	private static ApplicationContext ctxSpring;
-	private String configType;
+	private ApplicationContext ctxSpring;
 
 	//配置ibatis的Xml文件的相关参数（用于Ibatis）
 	private Car car;
@@ -55,112 +68,75 @@ public class HotLoadServiceImp implements HotLoadService {
 
     //定时扫描配置文件的主程序
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
-		//加载config.properties
-		Resource resource = new ClassPathResource(jobCtx.getJobDetail().getJobDataMap().getString("main/resources/config.properties"));
-
 		//判断是否需要热加载Spring的配置文件
-		if(isDeployed(resource,"hotdeploySpring")) {
-			//配置Spring的Xml文件的地
-			configType = "xml";
-			try {
-				loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathXml"), configType);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			//配置Spring的Prop文件的地址
-			configType = "prop";
-			try {
-				loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathProp"), configType);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		if(isDeployed(LOADSPRING)) {
+			loadFile(props.getProperty(XMLPATH), XML);
+			loadFile(props.getProperty(PROPPATH), PROP);
 		}
 
         //判断是否需要热加载Mybatis
-		if(isDeployed(resource, "hotdeployIbatis")) {
-			//配置Mybatis的Xml文件的地址
+		if(isDeployed(LOADIBATIS)) {
 			loadMybatis();
 		}
 
         //判断是否需要热加载Class
-        if(isDeployed(resource, "hotdeployClass")) {
-			configType = "class";
-            try {
-                loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathClass"), configType);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+        if(isDeployed( LOADCLASS)) {
+			loadFile(props.getProperty(CLASSPATH), CLASS);
         }
 
 		//判断是否需要热加载Jar
-		if(isDeployed(resource, "hotdeployJar")) {
-			configType = "jar";
-			try {
-				loadFile(PropertiesLoaderUtils.loadProperties(resource).getProperty("filePathJar"), configType);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		if(isDeployed(LOADJAR)) {
+			loadFile(props.getProperty(JARPATH), JAR);
 		}
 	}
 
 	//----------------------------公用的方法----------------------------------------
-	private boolean isDeployed(Resource resource, String type) {
+	private boolean isDeployed(String type) {
 		int hotDeploy = 0;
-		try {
-			hotDeploy = Integer.parseInt(PropertiesLoaderUtils.loadProperties(resource).getProperty(type));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		hotDeploy = Integer.parseInt(props.getProperty(type));
 		return hotDeploy == 1;
 	}
 	//----------------------------加载Spring、class和jar的共用方法----------------------------------------
 	private void loadFile(String filePath, String configType) {
 		//使用系统文件路径方式加载文件
 		ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-
 		try {
 			Resource resources[] = resolver.getResources(filePath);
 			for(Resource resource : resources) {
 				loadSingleFile(configType, resource);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 	}
 
 
-	private void loadSingleFile(String configType, Resource resource) {
+	private void  loadSingleFile(String configType, Resource resource) {
 		//配置文件上次更新的时间戳
 		long lastFrame = 0;
 		try {
 			lastFrame = resource.contentLength() + resource.lastModified();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 		String resourceName =  resource.getFilename();
 		//如果时间戳不存在
-		if (!xmlTime.containsKey(resourceName)) {
+		if ((!xmlTime.containsKey(resourceName)) && isFirstLoad) {
 			xmlTime.put(resourceName, lastFrame);
-			System.out.println(resourceName + "的时间戳第一次初始化");
-		} else if (!xmlTime.get(resourceName).equals(lastFrame)) {
+			logger.info(resourceName + "的时间戳第一次初始化");
+			isFirstLoad = false;
+		} else if (isFirstLoad || !xmlTime.get(resourceName).equals(lastFrame)) {
 			xmlTime.put(resourceName, lastFrame);
-			System.out.println("------------------------------------------");
-			System.out.println(resourceName + "的时间戳被更新");
+			logger.info("------------------------------------------");
+			logger.info(resourceName + "的时间戳被更新");
 			//更新配置文件
-			if(configType.equals("xml") || configType == "xml") {
+			if(configType.equals(XML) || configType == XML)
                 changeXml(resource);
-            }
-			else if(configType.equals("prop") || configType == "prop")
+			else if(configType.equals(PROP) || configType == PROP)
 				changeProp(resource);
-			else if(configType.equals("class") || configType == "class")
+			else if(configType.equals(CLASS) || configType == CLASS)
                 changeClass(resource);
-			else if(configType.equals("jar") || configType == "jar")
+			else if(configType.equals(JAR) || configType == JAR)
 				changeJar(resource);
 		}
 	}
@@ -168,39 +144,38 @@ public class HotLoadServiceImp implements HotLoadService {
 	//----------------------------加载Spring的方法---------------------------------------
 
 	private void changeXml(Resource resource) {
-		String s = null;
 		try {
-			s = resource.getFile().getAbsolutePath();
+			ctxSpring = new FileSystemXmlApplicationContext("file:" + resource.getFile().getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		ctxSpring = new FileSystemXmlApplicationContext("file:" + s);
 		car = (Car)ctxSpring.getBean("car3",Car.class);
-		System.out.println(resource.getFilename()+ "的新车牌号为" + car.brand);
+		logger.info(resource.getFilename()+ "的新车牌号为" + car.brand);
 
 	}
 
 	private void changeProp(Resource resource) {
+		Properties property = null;
 		try {
-			props = PropertiesLoaderUtils.loadProperties(resource);
+			property = PropertiesLoaderUtils.loadProperties(resource);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
-		System.out.println(props.getProperty("boc"));
+		logger.info(property.getProperty("boc"));
 	}
 
 	//----------------------------加载ibatis的方法---------------------------------------
-    //原理是用重写SqlmapClientFactoryBean让它返回我们重写过的SqlMapClientImpl，
-    // 在SqlMapClientImpl添加刷新的方法，然后通过SqlMapClientImpl来调用
-    // 我们代理的SqlMapExecutorDelegate就可以实现重新加载了
-    //SqlMapExecutorDelegate是具体的加载类，里面有一个判别
+    /*原理是用重写SqlmapClientFactoryBean让它返回我们重写过的SqlMapClientImpl，
+      在SqlMapClientImpl添加刷新的方法，然后通过SqlMapClientImpl来调用
+      我们代理的SqlMapExecutorDelegate就可以实现重新加载了
+      SqlMapExecutorDelegate是具体的加载类，里面有一个判别 */
 	private void loadMybatis() {
 		UsersDaoImpl studentDaoImpl = new UsersDaoImpl();
 
-		System.out.println("测试查询所有");
+		logger.info("测试查询所有");
 		List<Users> users = studentDaoImpl.selectAllStudent();
 		for (Users user : users) {
-			System.out.println(user);
+			logger.info(user);
 		}
 	}
 
@@ -212,11 +187,11 @@ public class HotLoadServiceImp implements HotLoadService {
 		try {
 			ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 		}
 		say = MyClassLoader.reLoadClass(ClassTemp);
         say.say();
-	    System.err.println(say.getClass().getName() + "成功被热加载 ");
+		logger.info(say.getClass().getName() + "成功被热加载 ");
     }
 
 	//----------------------------加载jar的方法----------------------------------------
@@ -228,7 +203,7 @@ public class HotLoadServiceImp implements HotLoadService {
 			URLClassLoader.addURLFile(resource.getURL());
             loadClassName(String.valueOf(resource.getFile()));
         } catch (IOException e) {
-            e.printStackTrace();
+			logger.error(e.getMessage(), e);
         }
 
         Iterator it = className.iterator();
@@ -239,25 +214,20 @@ public class HotLoadServiceImp implements HotLoadService {
                 forName = Class.forName(it.next() + "", true, URLClassLoader);
                 URLClassLoader.loadClass(it.next() + "");
             } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+				logger.error(e.getMessage(), e);
             }
 
-            System.out.println("load " + resource.getFilename() + "  success");
+			logger.info("load " + resource.getFilename() + "  success");
 
             JarTest1 jarTest = null;
             try {
                 jarTest = (JarTest1) forName.newInstance();
             } catch (InstantiationException e) {
-                e.printStackTrace();
+				logger.error(e.getMessage(), e);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+				logger.error(e.getMessage(), e);
             }
-
             jarTest.f();
-            //URLClassLoader.unloadJarFiles();
-            //System.out.println(jarTest.getClass().getName() + "成功被热加载 ");
-            //System.out.println(" 成功被热加载 ");
-
         }
         className.clear();
 	}
@@ -279,7 +249,7 @@ public class HotLoadServiceImp implements HotLoadService {
                 className.add(clazzName);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+			logger.error(e.getMessage(), e);
         }
     }
 }

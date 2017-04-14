@@ -1,5 +1,7 @@
 package main.java.com.bocsoft.deploy.service.serviceIml;
 
+import org.apache.log4j.Logger;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,6 +10,8 @@ import java.io.IOException;
  * Created by Jean on 2017/3/30.
  */
 public class MyClassLoader extends ClassLoader {
+    private static final Logger logger = Logger.getLogger(HotLoadServiceImp.class);
+
     //构造器私有化,禁止使用者直接生成实例
     private MyClassLoader() {}
 
@@ -26,7 +30,7 @@ public class MyClassLoader extends ClassLoader {
             byte[] b = getBytes(classPath);
             return defineClass(null, b, 0, b.length).newInstance();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         }
         return null;
     }
