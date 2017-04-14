@@ -70,7 +70,9 @@ public class HotLoadServiceImp implements HotLoadService {
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
 		//判断是否需要热加载Spring的配置文件
 		if(isDeployed(LOADSPRING)) {
+			isFirstLoad = true;
 			loadFile(props.getProperty(XMLPATH), XML);
+			isFirstLoad = true;
 			loadFile(props.getProperty(PROPPATH), PROP);
 		}
 
@@ -81,11 +83,13 @@ public class HotLoadServiceImp implements HotLoadService {
 
         //判断是否需要热加载Class
         if(isDeployed( LOADCLASS)) {
+			isFirstLoad = true;
 			loadFile(props.getProperty(CLASSPATH), CLASS);
         }
 
 		//判断是否需要热加载Jar
 		if(isDeployed(LOADJAR)) {
+			isFirstLoad = true;
 			loadFile(props.getProperty(JARPATH), JAR);
 		}
 	}
@@ -108,6 +112,7 @@ public class HotLoadServiceImp implements HotLoadService {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
+		isFirstLoad = false;
 	}
 
 
@@ -124,8 +129,7 @@ public class HotLoadServiceImp implements HotLoadService {
 		if ((!xmlTime.containsKey(resourceName)) && isFirstLoad) {
 			xmlTime.put(resourceName, lastFrame);
 			logger.info(resourceName + "的时间戳第一次初始化");
-			isFirstLoad = false;
-		} else if (isFirstLoad || !xmlTime.get(resourceName).equals(lastFrame)) {
+		} else if ((!xmlTime.containsKey(resourceName)) || (!xmlTime.get(resourceName).equals(lastFrame))) {
 			xmlTime.put(resourceName, lastFrame);
 			logger.info("------------------------------------------");
 			logger.info(resourceName + "的时间戳被更新");
