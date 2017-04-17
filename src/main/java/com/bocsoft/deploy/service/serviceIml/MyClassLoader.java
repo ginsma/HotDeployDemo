@@ -34,11 +34,7 @@ public class MyClassLoader extends ClassLoader {
         }
         return null;
     }
-
-/*    public Class<?> loadClass(String name,boolean resolve) throws ClassNotFoundException {
-        return findClass(name);
-    }*/
-
+    
     /**
      * @param o
      * @return T

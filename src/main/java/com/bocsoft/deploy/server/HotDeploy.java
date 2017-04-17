@@ -44,21 +44,11 @@ public class HotDeploy {
 
 				// Tell quartz to schedule the job using our trigger
 				scheduler.scheduleJob(job, trigger);
-				//End this scheduler in 80s
-				Thread.sleep(80000);
-
-				scheduler.shutdown();
-
 			}catch (Exception e) {
 				logger.error(e.getMessage(),e);
 			}
 	}
-
-
-
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
 		new HotDeploy().startServer();
 	}
-
 }

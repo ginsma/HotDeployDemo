@@ -7,19 +7,12 @@ import org.apache.log4j.Logger;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.core.io.support.ResourcePatternResolver;
-
-
-import test.java.com.bocsoft.deploy.beans.Car;
-import test.java.com.bocsoft.deploy.beans.Users;
-import test.java.com.bocsoft.deploy.dao.daoimpl.UsersDaoImpl;
-import test.java.com.bocsoft.deploy.service.JarTest1;
-import test.java.com.bocsoft.deploy.service.Say;
-
 
 import java.io.IOException;
 import java.util.*;
@@ -47,6 +40,7 @@ public class HotLoadServiceImp implements HotLoadService {
 	private static final String PROP = "prop";
 	private static final String CLASS = "class";
 	private static final String JAR = "jar";
+	private static final String APPLICATIONCTX = "classpath:main/resources/applicationContext.xml";
 
 	//存放配置文件的时间戳(用于Spring)
 	private static Map<String, Long> xmlTime = new HashMap<String, Long>();
@@ -54,10 +48,9 @@ public class HotLoadServiceImp implements HotLoadService {
 	private ApplicationContext ctxSpring;
 
 	//配置ibatis的Xml文件的相关参数（用于Ibatis）
-	private Car car;
+	private MySqlMapClientImpl sqlMapClient;
 
     //配置class文件的相关参数（用于Class）
-    private Say say;
 
 	//配置jar文件的相关参数（用于Jar）
 	private MyURLClassLoader URLClassLoader;
@@ -126,7 +119,6 @@ public class HotLoadServiceImp implements HotLoadService {
 			logger.info(resourceName + "的时间戳第一次初始化");
 		} else if ((!xmlTime.containsKey(resourceName)) || (!xmlTime.get(resourceName).equals(lastFrame))) {
 			xmlTime.put(resourceName, lastFrame);
-			logger.info("------------------------------------------");
 			logger.info(resourceName + "的时间戳被更新");
 			//更新配置文件
 			if(configType.equals(XML) || configType == XML)
@@ -148,19 +140,16 @@ public class HotLoadServiceImp implements HotLoadService {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		car = (Car)ctxSpring.getBean("car3",Car.class);
-		logger.info(resource.getFilename()+ "的新车牌号为" + car.brand);
-
+		logger.info(resource.getFilename() + "加载成功");
 	}
 
 	private void changeProp(Resource resource) {
-		Properties property = null;
 		try {
-			property = PropertiesLoaderUtils.loadProperties(resource);
+			PropertiesLoaderUtils.loadProperties(resource);
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
-		logger.info(property.getProperty("boc"));
+		logger.info(resource.getFilename()  + "property加载成功");
 	}
 
 	//----------------------------加载ibatis的方法---------------------------------------
@@ -169,28 +158,26 @@ public class HotLoadServiceImp implements HotLoadService {
       我们代理的SqlMapExecutorDelegate就可以实现重新加载了
       SqlMapExecutorDelegate是具体的加载类，里面有一个判别 */
 	private void loadIbatis() {
-		UsersDaoImpl studentDaoImpl = new UsersDaoImpl();
-
-		logger.info("测试查询所有");
-		List<Users> users = studentDaoImpl.selectAllStudent();
-		for (Users user : users) {
-			logger.info(user);
+		ApplicationContext ctx = new ClassPathXmlApplicationContext(APPLICATIONCTX);
+		sqlMapClient = (MySqlMapClientImpl) ctx.getBean("sqlMapClient");
+		try {
+			sqlMapClient.fresh();
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
 		}
+		logger.info("ibatis加载成功");
 	}
 
     //----------------------------加载Class的方法----------------------------------------
     //原来是根据跳过ClassLoader的loadClass方法，而是直接执行defineClass方法或者是findClass来加载Class文件
     private void changeClass(Resource resource) {
-		Object ClassTemp = null;
 		//直接执行自己ClassLoader的findNewClass方法来调用defineClass方法，跳过验证ClassLoader的步骤
 		try {
-			ClassTemp = MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
+			MyClassLoader.GetInstance().findNewClass(resource.getFile().toString());
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
-		say = MyClassLoader.reLoadClass(ClassTemp);
-        say.say();
-		logger.info(say.getClass().getName() + "成功被热加载 ");
+		logger.info("class成功被热加载 ");
     }
 
 	//----------------------------加载jar的方法----------------------------------------
@@ -208,25 +195,14 @@ public class HotLoadServiceImp implements HotLoadService {
         Iterator it = className.iterator();
         //加载Class文件
         while(it.hasNext()) {
-            Class<?> forName = null;
             try {
-                forName = Class.forName(it.next() + "", true, URLClassLoader);
+                Class.forName(it.next() + "", true, URLClassLoader);
                 URLClassLoader.loadClass(it.next() + "");
             } catch (ClassNotFoundException e) {
 				logger.error(e.getMessage(), e);
             }
 
 			logger.info("load " + resource.getFilename() + "  success");
-
-            JarTest1 jarTest = null;
-            try {
-                jarTest = (JarTest1) forName.newInstance();
-            } catch (InstantiationException e) {
-				logger.error(e.getMessage(), e);
-            } catch (IllegalAccessException e) {
-				logger.error(e.getMessage(), e);
-            }
-            jarTest.f();
         }
         className.clear();
 	}
