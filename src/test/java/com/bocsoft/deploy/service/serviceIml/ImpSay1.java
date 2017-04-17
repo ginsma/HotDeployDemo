@@ -6,7 +6,7 @@ import test.java.com.bocsoft.deploy.service.Say;
 public class ImpSay1 implements Say {
 	@Override
 	public void say() {
-		System.out.println("我是MD2222222");
+		System.out.println("我是MD22222222234");
 	}
 
 }

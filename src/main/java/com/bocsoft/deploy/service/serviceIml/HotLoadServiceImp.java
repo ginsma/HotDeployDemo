@@ -2,14 +2,12 @@ package main.java.com.bocsoft.deploy.service.serviceIml;
 
 
 import main.java.com.bocsoft.deploy.beans.Props;
-import main.java.com.bocsoft.deploy.server.HotDeploy;
 import main.java.com.bocsoft.deploy.service.HotLoadService;
 import org.apache.log4j.Logger;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -37,18 +35,18 @@ public class HotLoadServiceImp implements HotLoadService {
     //配置文件信息（全部）
 	private Properties props = new Props().getProps();
 	private static boolean isFirstLoad = true;
-	private final String LOADSPRING = "loadSpring";
-	private final String LOADIBATIS = "loadIbatis";
-	private final String LOADCLASS = "loadClass";
-	private final String LOADJAR = "loadJar";
-	private final String XMLPATH = "xmlPath";
-	private final String PROPPATH = "propPath";
-	private final String CLASSPATH = "classPath";
-	private final String JARPATH = "jarPath";
-	private final String XML = "xml";
-	private final String PROP = "prop";
-	private final String CLASS = "class";
-	private final String JAR = "jar";
+	private static final String LOADSPRING = "loadSpring";
+	private static final String LOADIBATIS = "loadIbatis";
+	private static final String LOADCLASS = "loadClass";
+	private static final String LOADJAR = "loadJar";
+	private static final String XMLPATH = "xmlPath";
+	private static final String PROPPATH = "propPath";
+	private static final String CLASSPATH = "classPath";
+	private static final String JARPATH = "jarPath";
+	private static final String XML = "xml";
+	private static final String PROP = "prop";
+	private static final String CLASS = "class";
+	private static final String JAR = "jar";
 
 	//存放配置文件的时间戳(用于Spring)
 	private static Map<String, Long> xmlTime = new HashMap<String, Long>();
@@ -63,35 +61,32 @@ public class HotLoadServiceImp implements HotLoadService {
 
 	//配置jar文件的相关参数（用于Jar）
 	private MyURLClassLoader URLClassLoader;
-    private final static String CLAZZ_SUFFIX = ".class";
+    private static final  String CLAZZ_SUFFIX = ".class";
     private static List<String> className = new ArrayList<String>();
 
     //定时扫描配置文件的主程序
 	public void execute(JobExecutionContext jobCtx) throws JobExecutionException {
 		//判断是否需要热加载Spring的配置文件
 		if(isDeployed(LOADSPRING)) {
-			isFirstLoad = true;
 			loadFile(props.getProperty(XMLPATH), XML);
-			isFirstLoad = true;
 			loadFile(props.getProperty(PROPPATH), PROP);
 		}
 
         //判断是否需要热加载Mybatis
 		if(isDeployed(LOADIBATIS)) {
-			loadMybatis();
+			loadIbatis();
 		}
 
         //判断是否需要热加载Class
-        if(isDeployed( LOADCLASS)) {
-			isFirstLoad = true;
+        if(isDeployed(LOADCLASS)) {
 			loadFile(props.getProperty(CLASSPATH), CLASS);
         }
 
 		//判断是否需要热加载Jar
 		if(isDeployed(LOADJAR)) {
-			isFirstLoad = true;
 			loadFile(props.getProperty(JARPATH), JAR);
 		}
+		isFirstLoad = false;
 	}
 
 	//----------------------------公用的方法----------------------------------------
@@ -112,7 +107,7 @@ public class HotLoadServiceImp implements HotLoadService {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 		}
-		isFirstLoad = false;
+
 	}
 
 
@@ -173,7 +168,7 @@ public class HotLoadServiceImp implements HotLoadService {
       在SqlMapClientImpl添加刷新的方法，然后通过SqlMapClientImpl来调用
       我们代理的SqlMapExecutorDelegate就可以实现重新加载了
       SqlMapExecutorDelegate是具体的加载类，里面有一个判别 */
-	private void loadMybatis() {
+	private void loadIbatis() {
 		UsersDaoImpl studentDaoImpl = new UsersDaoImpl();
 
 		logger.info("测试查询所有");

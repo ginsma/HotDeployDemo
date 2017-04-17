@@ -24,6 +24,7 @@ public class UsersDaoImpl implements UsersDao {
         List<Users> students = null;
         try {
             students = sqlMapClient.queryForList("selectAllStudent");
+            //关键代码
             sqlMapClient.fresh();
         } catch (SQLException e) {
             e.printStackTrace();
